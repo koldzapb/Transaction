@@ -5,9 +5,8 @@ namespace Transaction\Service;
 use Core\Configuration\TransactionConfiguration;
 use Core\Exception\ValidationException;
 use Core\Service\AbstractService;
-use DateTime;
 use Transaction\LoggingService\PsvTransactionLoggingService;
-use UserTransaction\CommunicationService\UserGracePeriodCommunicationService;
+use UserTransaction\Service\ProcessUserGracePeriodService;
 
 class TransactionService extends AbstractService
 {
@@ -21,7 +20,7 @@ class TransactionService extends AbstractService
         $this->populateDto();
         if ($this->validate($this->dto)) {
             $this->generateResult();
-            $this->log();
+            $this->processPsvTransaction();
         } else {
             throw new ValidationException($this->errors);
         }
@@ -46,23 +45,17 @@ class TransactionService extends AbstractService
     protected function processGracePeriod()
     {
         if ($this->dto['account_status'] != 'grace') {
-            $this->resultAccount['status'] = 'grace';
-            $this->resultAccount['grace_date'] = new DateTime();
-            $this->communicate();
+            $result = new ProcessUserGracePeriodService();
+            $this->resultAccount['status'] = $result['status'];
+            $this->resultAccount['grace_date'] = $result['grace_date'];
         }
     }
 
-    protected function communicate()
-    {
-        $communicationService = new UserGracePeriodCommunicationService();
-        $communicationService->userGracePeriodHasStarted();
-    }
-
-    protected function log()
+    protected function processPsvTransaction()
     {
         if ($this->dto['transaction_type'] == 'psv') {
-            $logginService = new PsvTransactionLoggingService();
-            $logginService->psvTransactionHasBeenCompleted();
+            $psvTransaction = new ProcessPsvTransactionService();
+            $psvTransaction->processTransaction();
         }
     }
 

@@ -5,6 +5,9 @@ namespace Core\Validation;
 abstract class AbstractValidator
 {
     protected $errors = [];
+    protected $result = true;
+    protected $message;
+    protected $success = true;
 
     abstract public function validate($dto);
 
@@ -20,6 +23,18 @@ abstract class AbstractValidator
 
     protected function generateResult()
     {
-        return;
+        $this->checkResult();
+        $result['errors'] = $this->getErrors();
+        $result['success'] = $this->success;
+
+        return $result;
+    }
+
+    protected function checkResult()
+    {
+        if (!$this->result) {
+            $this->setError($this->message);
+            $this->success = false;
+        }
     }
 }
